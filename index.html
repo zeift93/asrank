@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AS Rank Dashboard</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <!-- Google Fonts (Inter) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+  <!-- jQuery -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+  <!-- Fixed Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">AS Rank Dashboard</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+              aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
+        <div class="d-flex align-items-center">
+          <div class="input-group me-2" style="max-width: 180px;">
+            <span class="input-group-text asn-label">ASN</span>
+            <input type="text" id="requestorASN" class="form-control" value="7473" placeholder="Enter ASN">
+          </div>
+          <button id="loadDashboardBtn" class="btn btn-primary me-2">Load</button>
+          <button id="manualUpdateBtn" class="btn btn-outline-secondary">Manual Update</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <div class="container-fluid main-content">
+    <!-- Fixed Sidebar -->
+    <nav id="sidebarMenu" class="bg-light">
+      <div class="position-sticky pt-3">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link active" href="#dashboard-summary">
+              <i class="bi bi-speedometer2 me-2"></i> Dashboard Summary
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#as-detail">
+              <i class="bi bi-bar-chart-line me-2"></i> Historical Data
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#competitor-analysis">
+              <i class="bi bi-people me-2"></i> Lost Customer Analysis
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#peeringdb-info">
+              <i class="bi bi-hdd-network me-2"></i> PeeringDB Info
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link collapsed" href="#exportSubMenu" data-bs-toggle="collapse" aria-expanded="false">
+              <i class="bi bi-download me-2"></i> Export Data
+            </a>
+                <div class="collapse" id="exportSubMenu">
+                 <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
+                   <li>
+                     <a id="exportRawDataLink" class="nav-link" href="#" data-bs-toggle="tooltip" data-bs-placement="right" title="Download all raw data as a multi-sheet Excel file">
+                         Download Raw Data
+                    </a>
+                   </li>
+                    <li>
+                     <a id="exportCaidaDataLink" class="nav-link" href="#" data-bs-toggle="tooltip" data-bs-placement="right" title="Download CAIDA data for the specified date range">
+                         Download Caida Data (Date Range)
+                    </a>
+                    </li>
+    </ul>
+  </div>
+</li>
+
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Main Dashboard Content -->
+    <main>
+      <!-- Dashboard Summary Section -->
+      <section id="dashboard-summary" class="mb-4">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <h2 class="card-title mb-4">Dashboard Summary for ASN <span id="displayASN">7473</span></h2>
+            <div class="row text-center g-3">
+              <div class="col-md-4">
+                <div class="card metric-card bg-primary text-white">
+                  <div class="card-body">
+                    <h5 class="card-title">Customer Cone Size</h5>
+                    <p class="card-text" id="coneSizeMetric">Loading...</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card metric-card bg-success text-white">
+                  <div class="card-body">
+                    <h5 class="card-title">Rank</h5>
+                    <p class="card-text" id="rankMetric">Loading...</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card metric-card bg-danger text-white">
+                  <div class="card-body">
+                    <h5 class="card-title">Lost Customer Events</h5>
+                    <p class="card-text" id="lostEventsMetric">Loading...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Historical Data & Chart Section -->
+      <section id="as-detail" class="mb-4">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <h2 class="card-title mb-4">Analysis Chart</h2>
+            <!-- Chart Filters -->
+            <div class="analysis-filter mb-3">
+              <label class="form-check-label me-2">
+                <input type="checkbox" class="form-check-input" id="chkCustomerCone" checked> Customer Cone Size
+              </label>
+              <label class="form-check-label me-2">
+                <input type="checkbox" class="form-check-input" id="chkCustomerQty"> Customer Quantity
+              </label>
+              <label class="form-check-label me-2">
+                <input type="checkbox" class="form-check-input" id="chkTransitDegree"> Transit Degree
+              </label>
+              <label class="form-check-label me-2">
+                <input type="checkbox" class="form-check-input" id="chkProviderQty"> Provider Quantity
+              </label>
+              <label class="form-check-label me-2">
+                <input type="checkbox" class="form-check-input" id="chkPeerQty"> Peer Quantity
+              </label>
+              <label class="form-check-label me-2">
+                <input type="checkbox" class="form-check-input" id="chkRank"> Rank
+              </label>
+              <button id="updateChartBtn" class="btn btn-secondary ms-2" hidden="hidden"'>Update Chart</button>
+            </div>
+            <!-- Date Range & Search Button -->
+            <div class="d-flex align-items-center mb-3">
+              <div class="me-3">
+                <label for="startMonth" class="form-label">Start Month:</label>
+                <input type="month" id="startMonth" class="form-control">
+              </div>
+              <div class="me-3">
+                <label for="endMonth" class="form-label">End Month:</label>
+                <input type="month" id="endMonth" class="form-control">
+              </div>
+              <button id="loadHistoricalBtn" class="btn btn-primary ms-2">Search</button>
+            </div>
+            <div class="chart-container">
+              <canvas id="coneGrowthChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lost Customer Analysis Section using Bootstrap Accordion -->
+      <section id="competitor-analysis" class="mb-4">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <h2 class="card-title mb-4">Lost Customer Analysis</h2>
+            <div id="lostCustomerAccordion" class="accordion"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PeeringDB Info Section -->
+      <section id="peeringdb-info" class="mb-4">
+        <div class="card shadow-sm border-0">
+          <div class="card-body" id="peeringdbContainer">
+            <h2 class="card-title mb-4"><i class="bi bi-hdd-network me-2"></i>PeeringDB Network Information</h2>
+            <div class="row">
+              <div class="col-md-6" id="peeringdbBasic">
+                <p>Loading PeeringDB data...</p>
+              </div>
+              <div class="col-md-6">
+                <!-- Interconnection Facilities -->
+                <div class="mb-3">
+                  <h5>Interconnection Facilities</h5>
+                  <table class="table table-sm" style="table-layout: fixed; width: 100%;">
+                    <thead>
+                      <tr>
+                        <th style="width: 60%; text-align:left;">Facility</th>
+                        <th style="width: 40%; text-align:left;">Location</th>
+                      </tr>
+                    </thead>
+                  </table>
+                  <div class="scroller-wrapper">
+                    <table class="table table-sm" style="table-layout: fixed; width: 100%;">
+                      <tbody id="facList"></tbody>
+                    </table>
+                  </div>
+                </div>
+                <!-- Public Peering Exchange Points -->
+                <div class="mb-3">
+                  <h5>Public Peering Exchange Points</h5>
+                  <table class="table table-sm" style="table-layout: fixed; width: 100%;">
+                    <thead>
+                      <tr>
+                        <th style="width: 60%; text-align:left;">Exchange</th>
+                        <th style="width: 40%; text-align:left;">Port Size</th>
+                      </tr>
+                    </thead>
+                  </table>
+                  <div class="scroller-wrapper">
+                    <table class="table table-sm" style="table-layout: fixed; width: 100%;">
+                      <tbody id="ixList"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Spinner Overlay -->
+  <div id="spinnerOverlay" class="spinner-overlay" style="display:none;">
+    <div class="spinner"></div>
+    <p>Loading data...</p>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer mt-4">
+    <div class="container">
+      <p class="text-center">&copy; 2025 AS Rank Dashboard. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Custom JavaScript Integration -->
+  <script>
+    // Spinner controls
+    function showSpinner() {
+      document.getElementById('spinnerOverlay').style.display = 'flex';
+    }
+    function hideSpinner() {
+      document.getElementById('spinnerOverlay').style.display = 'none';
+    }
+
+    // Set max for endMonth to current month
+    function setEndMonthMax() {
+      const now = new Date();
+      const maxVal = now.toISOString().slice(0,7);
+      document.getElementById('endMonth').setAttribute('max', maxVal);
+    }
+    setEndMonthMax();
+
+    let analysisData = {
+      labels: [],
+      customerCone: [],
+      customerQuantity: [],
+      transitDegree: [],
+      providerQuantity: [],
+      peerQuantity: [],
+      rank: []
+    };
+    let coneChart;
+
+    function renderConeGrowthChart() {
+      const ctx = document.getElementById('coneGrowthChart').getContext('2d');
+      if (coneChart) { coneChart.destroy(); }
+
+      let selectedCount = 0;
+      const showCone = document.getElementById('chkCustomerCone').checked;
+      const showCustQty = document.getElementById('chkCustomerQty').checked;
+      const showTransDeg = document.getElementById('chkTransitDegree').checked;
+      const showProvQty = document.getElementById('chkProviderQty').checked;
+      const showPeerQty = document.getElementById('chkPeerQty').checked;
+      const showRank = document.getElementById('chkRank').checked;
+      [showCone, showCustQty, showTransDeg, showProvQty, showPeerQty, showRank].forEach(val => {
+        if (val) selectedCount++;
+      });
+
+      const axisChoice = () => selectedCount === 1 ? 'y' : 'y2';
+
+      let datasets = [];
+      if (showCone) {
+        datasets.push({
+          label: "Customer Cone Size",
+          data: analysisData.customerCone,
+          borderColor: 'blue',
+          fill: true,
+          backgroundColor: 'rgba(74,144,226,0.2)',
+          tension: 0.3,
+          yAxisID: 'y'
+        });
+      }
+      if (showCustQty) {
+        datasets.push({
+          label: "Customer Quantity",
+          data: analysisData.customerQuantity,
+          borderColor: 'green',
+          fill: false,
+          tension: 0.3,
+          yAxisID: axisChoice()
+        });
+      }
+      if (showTransDeg) {
+        datasets.push({
+          label: "Transit Degree",
+          data: analysisData.transitDegree,
+          borderColor: 'red',
+          fill: false,
+          tension: 0.3,
+          yAxisID: axisChoice()
+        });
+      }
+      if (showProvQty) {
+        datasets.push({
+          label: "Provider Quantity",
+          data: analysisData.providerQuantity,
+          borderColor: 'orange',
+          fill: false,
+          tension: 0.3,
+          yAxisID: axisChoice()
+        });
+      }
+      if (showPeerQty) {
+        datasets.push({
+          label: "Peer Quantity",
+          data: analysisData.peerQuantity,
+          borderColor: 'purple',
+          fill: false,
+          tension: 0.3,
+          yAxisID: axisChoice()
+        });
+      }
+      if (showRank) {
+        datasets.push({
+          label: "Rank",
+          data: analysisData.rank,
+          borderColor: 'black',
+          fill: false,
+          tension: 0.3,
+          yAxisID: axisChoice()
+        });
+      }
+
+      coneChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: analysisData.labels,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              position: 'left',
+              title: { display: true, text: 'Primary Axis' }
+            },
+            y2: {
+              beginAtZero: true,
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'Quantity Metrics' }
+            }
+          }
+        }
+      });
+    }
+
+    function updateAnalysisChart() {
+      renderConeGrowthChart();
+    }
+
+    // Build Lost Customer Analysis using Bootstrap Accordion with refined header styling
+    function buildLostAnalysisAccordion(monthlyStats) {
+      const container = document.getElementById('lostCustomerAccordion');
+      container.innerHTML = "";
+      monthlyStats.forEach((mData, index) => {
+        const dt = new Date(mData.month);
+        const monthLabel = dt.toLocaleString('default', { month: 'short', year: 'numeric' });
+        const accordionItem = document.createElement('div');
+        accordionItem.className = "accordion-item";
+        const itemId = "lostItem" + index;
+        accordionItem.innerHTML = `
+          <h2 class="accordion-header" id="heading${itemId}">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${itemId}" aria-expanded="false" aria-controls="collapse${itemId}">
+              <strong>${monthLabel}</strong> <span class="small text-muted"> (Previous Month Cone: ${mData.previousMonthCone}, Current Cone: ${mData.currentCone}, Changes: <span style="color:${typeof mData.coneChanges === 'number' ? (mData.coneChanges < 0 ? 'red' : 'green') : 'inherit'};">${mData.coneChanges}</span>)</span>
+            </button>
+          </h2>
+          <div id="collapse${itemId}" class="accordion-collapse collapse" aria-labelledby="heading${itemId}" data-bs-parent="#lostCustomerAccordion">
+            <div class="accordion-body">
+              ${buildLostAnalysisTableHTML(mData.lostEvents)}
+            </div>
+          </div>
+        `;
+        container.appendChild(accordionItem);
+        // After populating the table, initialize Bootstrap tooltips:
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+tooltipTriggerList.map(function (tooltipTriggerEl) {
+  return new bootstrap.Tooltip(tooltipTriggerEl);
+});
+      });
+    }
+
+function buildLostAnalysisTableHTML(lostEvents) {
+  let html = `<table class="table table-sm table-striped" style="width: 100%; table-layout: fixed;">
+                <thead>
+                  <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 15%;">Cust ASN</th>
+                    <th style="width: 25%;">Customer Name</th>
+                    <th style="width: 20%;">Relationship (CM)</th>
+                    <th style="width: 15%;">Customer Cone</th>
+                    <th style="width: 20%;">Competitors</th>
+                  </tr>
+                </thead>
+                <tbody>`;
+  lostEvents.forEach((evt, idx) => {
+    let compStr = "";
+    if (evt.competitor_asn && evt.competitor_asn.length) {
+      // Build a string that includes a tooltip on each competitor.
+      compStr = evt.competitor_asn.map((c, i) => {
+        const orgName = evt.competitor_org[i] || "N/A";
+        const compMonth = evt.competitor_month || "N/A";
+        // Wrap each competitor in a span with tooltip attributes.
+        return `<span data-bs-toggle="tooltip"
+                data-bs-placement="top"
+                title="Identified in ${compMonth}">
+            ${c} (${orgName})
+          </span>`;
+      }).join(", ");
+    }
+    html += `<tr>
+                <td>${idx + 1}</td>
+                <td>${evt.lost_asn || 'N/A'}</td>
+                <td>${evt.lost_org || 'N/A'}</td>
+                <td>${evt.relationship_cm || 'N/A'}</td>
+                <td>${evt.lost_cust_cone || 'N/A'}</td>
+                <td>${compStr}</td>
+             </tr>`;
+  });
+  html += `</tbody></table>`;
+  return html;
+}
+
+    async function loadASSummary(asn) {
+      try {
+        const resp = await fetch(`/api/as/${asn}`);
+        if (!resp.ok) throw new Error('Failed to load AS summary');
+        const data = await resp.json();
+        document.getElementById('coneSizeMetric').textContent = data.cone_asn_count || 'N/A';
+        document.getElementById('rankMetric').textContent = data.as_rank || 'N/A';
+      } catch (err) {
+        console.error(err);
+        alert("Error loading AS summary data.");
+      }
+    }
+
+    async function loadAvailableSnapshots(asn) {
+      try {
+        const resp = await fetch(`/api/available_snapshots?asn=${asn}`);
+        if (!resp.ok) throw new Error('Failed to load available snapshots.');
+        const data = await resp.json();
+        console.log("[DEBUG] Available snapshots for", asn, ":", data.snapshots);
+      } catch (error) {
+        console.error("Error loading available snapshots:", error);
+      }
+    }
+
+    async function loadHistoricalData(asn, startDate, endDate) {
+      try {
+        const apiStartDate = startDate + "-01";
+        const apiEndDate = endDate + "-01";
+        const resp = await fetch(`/api/historical?asn=${asn}&start_date=${apiStartDate}&end_date=${apiEndDate}`);
+        if (!resp.ok) throw new Error('Failed to load historical data');
+        const historicalData = await resp.json();
+        analysisData.labels = historicalData.labels;
+        analysisData.customerCone = historicalData.coneSizes;
+        analysisData.customerQuantity = historicalData.customerQuantity;
+        analysisData.transitDegree = historicalData.transitDegree;
+        analysisData.providerQuantity = historicalData.providerQuantity;
+        analysisData.peerQuantity = historicalData.peerQuantity;
+        analysisData.rank = historicalData.ranks || [];
+        renderConeGrowthChart();
+      } catch (err) {
+        console.error(err);
+        alert("Error loading historical data.");
+      }
+    }
+
+    async function loadCompetitorAnalysis(asn, startDate, endDate) {
+      try {
+        const url = `/api/competitor_analysis?requestor_asn=${asn}&start_date=${startDate}&end_date=${endDate}`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('Failed to load competitor analysis data');
+        const data = await resp.json();
+        if (!data.monthlyStats || !data.monthlyStats.length) {
+          document.getElementById('lostCustomerAccordion').innerHTML = "<p>No lost customer events found.</p>";
+          return;
+        }
+        buildLostAnalysisAccordion(data.monthlyStats);
+      } catch (err) {
+        console.error(err);
+        alert("Error loading competitor analysis data.");
+      }
+    }
+
+    async function loadPeeringDB(asn) {
+      try {
+        const resp = await fetch(`/api/peeringdb/${asn}`);
+        if (!resp.ok) throw new Error('Failed to load PeeringDB data');
+        const data = await resp.json();
+        if (data.warning) {
+          document.getElementById('peeringdbContainer').innerHTML = `<h2 class="card-title mb-4"><i class="bi bi-hdd-network me-2"></i>PeeringDB Network Information</h2><p>${data.warning}</p>`;
+        } else {
+          displayPeeringDBInfo(data);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Error loading PeeringDB data.");
+      }
+    }
+
+    function displayPeeringDBInfo(data) {
+      const basicHtml = `
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item"><strong>Network Name:</strong> ${data.network_name || 'N/A'}</li>
+          <li class="list-group-item"><strong>AS-SET:</strong> ${data.irr_as_set || 'N/A'}</li>
+          <li class="list-group-item"><strong>Peering Policy:</strong> ${data.peering_policy || 'N/A'}</li>
+          <li class="list-group-item"><strong>IXP Count:</strong> ${data.ix_count || 'N/A'}</li>
+          <li class="list-group-item"><strong>Facility Count:</strong> ${data.fac_count || 'N/A'}</li>
+          <li class="list-group-item"><strong>Presence:</strong> <span id="presenceVal">N/A</span></li>
+        </ul>
+      `;
+      document.getElementById('peeringdbBasic').innerHTML = basicHtml;
+      let facHtml = '';
+      let uniqueCountries = new Set();
+      if (data.netfac_set && data.netfac_set.length > 0) {
+        data.netfac_set.forEach(fac => {
+          let facilityName = fac.name || 'N/A';
+          facHtml += `
+            <tr>
+              <td>${facilityName}</td>
+              <td>
+                ${fac.country || 'N/A'}<br>
+                <span class="text-muted small">${fac.city || 'N/A'}</span>
+              </td>
+            </tr>
+          `;
+          if (fac.country) uniqueCountries.add(fac.country);
+        });
+      } else {
+        facHtml = '<tr><td colspan="2">No facilities found.</td></tr>';
+      }
+      document.getElementById('facList').innerHTML = facHtml;
+      const presenceStr = [...uniqueCountries].join(", ");
+      document.getElementById('presenceVal').textContent = presenceStr || 'N/A';
+      let ixHtml = '';
+      if (data.netixlan_set && data.netixlan_set.length > 0) {
+        data.netixlan_set.forEach(ix => {
+          const displayedPortSize = ix.port_size || 'N/A';
+          ixHtml += `
+            <tr>
+              <td>
+                ${ix.name || 'N/A'}<br>
+                <span class="text-muted small">${ix.ipaddr4 || 'N/A'}</span>
+              </td>
+              <td>${displayedPortSize}</td>
+            </tr>
+          `;
+        });
+      } else {
+        ixHtml = '<tr><td colspan="2">No exchange points found.</td></tr>';
+      }
+      document.getElementById('ixList').innerHTML = ixHtml;
+    }
+
+    async function loadDashboardData(asn) {
+      showSpinner();
+      await loadASSummary(asn);
+      await loadAvailableSnapshots(asn);
+      const startDate = document.getElementById('startMonth').value;
+      const endDate = document.getElementById('endMonth').value;
+      await loadHistoricalData(asn, startDate, endDate);
+      await loadCompetitorAnalysis(asn, startDate, endDate);
+      await loadPeeringDB(asn);
+      hideSpinner();
+    }
+
+    async function loadASSummary(asn) {
+      try {
+        const resp = await fetch(`/api/as/${asn}`);
+        if (!resp.ok) throw new Error('Failed to load AS summary');
+        const data = await resp.json();
+        document.getElementById('coneSizeMetric').textContent = data.cone_asn_count || 'N/A';
+        document.getElementById('rankMetric').textContent = data.as_rank || 'N/A';
+      } catch (err) {
+        console.error(err);
+        alert("Error loading AS summary data.");
+      }
+    }
+
+    async function loadAvailableSnapshots(asn) {
+      try {
+        const resp = await fetch(`/api/available_snapshots?asn=${asn}`);
+        if (!resp.ok) throw new Error('Failed to load available snapshots.');
+        const data = await resp.json();
+        console.log("[DEBUG] Available snapshots for", asn, ":", data.snapshots);
+      } catch (error) {
+        console.error("Error loading available snapshots:", error);
+      }
+    }
+
+    // Navbar button events
+    document.getElementById('loadDashboardBtn').addEventListener('click', async function() {
+      const asn = document.getElementById('requestorASN').value;
+      document.getElementById('displayASN').textContent = asn;
+      await loadDashboardData(asn);
+    });
+
+    document.getElementById('manualUpdateBtn').addEventListener('click', async function() {
+      const asn = document.getElementById('requestorASN').value;
+      const startDate = document.getElementById('startMonth').value;
+      const endDate = document.getElementById('endMonth').value;
+      showSpinner();
+      try {
+        const resp = await fetch('/api/update_data', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            asn: asn,
+            start_date: startDate + "-01",
+            end_date: endDate + "-01"
+          })
+        });
+        if (!resp.ok) throw new Error('Manual update failed');
+        const result = await resp.json();
+        alert(result.message || result.error);
+      } catch (error) {
+        console.error("Manual update error:", error);
+        alert("Manual update failed. Please check the console for details.");
+      } finally {
+        hideSpinner();
+      }
+    });
+
+    document.getElementById('loadHistoricalBtn').addEventListener('click', async function() {
+      const asn = document.getElementById('requestorASN').value;
+      const startDate = document.getElementById('startMonth').value;
+      const endDate = document.getElementById('endMonth').value;
+      await loadHistoricalData(asn, startDate, endDate);
+      await loadCompetitorAnalysis(asn, startDate, endDate);
+    });
+
+    document.getElementById('updateChartBtn').addEventListener('click', updateAnalysisChart);
+    ['chkCustomerCone','chkCustomerQty','chkTransitDegree','chkProviderQty','chkPeerQty','chkRank']
+      .forEach(id => {
+        document.getElementById(id).addEventListener('change', updateAnalysisChart);
+      });
+
+    window.onload = async function() {
+      const defaultASN = document.getElementById('requestorASN').value;
+      document.getElementById('displayASN').textContent = defaultASN;
+      const now = new Date();
+      const endVal = now.toISOString().slice(0,7);
+      document.getElementById('endMonth').value = endVal;
+      const startDateObj = new Date(now.getFullYear() - 1, now.getMonth());
+      const startVal = startDateObj.toISOString().slice(0,7);
+      document.getElementById('startMonth').value = startVal;
+      await loadDashboardData(defaultASN);
+    };
+
+
+function renderLostCustomerRow(event) {
+  // event is one lost event object from the JSON with keys: lost_asn, lost_org, competitor_asn, competitor_org, competitor_month, etc.
+  // Create a table row (this is a simplified example):
+  var tr = document.createElement('tr');
+
+  var cellLostASN = document.createElement('td');
+  cellLostASN.textContent = event.lost_asn || "N/A";
+  tr.appendChild(cellLostASN);
+
+  var cellLostOrg = document.createElement('td');
+  cellLostOrg.textContent = event.lost_org || "N/A";
+  tr.appendChild(cellLostOrg);
+
+  var cellCompetitor = document.createElement('td');
+  // Format the competitor text as "ASN (OrgName)"
+  var compText = (Array.isArray(event.competitor_asn) ? event.competitor_asn.join(", ") : event.competitor_asn) +
+                 " (" +
+                 (Array.isArray(event.competitor_org) ? event.competitor_org.join(", ") : event.competitor_org) +
+                 ")";
+  cellCompetitor.textContent = compText;
+  // Set tooltip attribute with the competitor month information
+  cellCompetitor.setAttribute("data-bs-toggle", "tooltip");
+  cellCompetitor.setAttribute("data-bs-placement", "top");
+  cellCompetitor.setAttribute("title", "Identified in " + event.competitor_month);
+  tr.appendChild(cellCompetitor);
+
+  // (Additional cells can be added similarly)
+
+  return tr;
+}
+
+// After populating the table, initialize Bootstrap tooltips:
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+tooltipTriggerList.map(function (tooltipTriggerEl) {
+  return new bootstrap.Tooltip(tooltipTriggerEl);
+});
+  </script>
+
+    <script>
+    function updateExportLinks() {
+    var asn = document.getElementById('requestorASN').value.trim();
+    var startMonth = document.getElementById('startMonth').value;
+    var endMonth = document.getElementById('endMonth').value;
+
+    // Append day portion to month value to form full date strings
+     var startDate = startMonth + "-01";
+     var endDate = endMonth + "-01";
+
+     var rawDataURL = "/api/download_raw_data?asn=" + encodeURIComponent(asn);
+     var caidaDataURL = "/api/download_caida_data?asn=" + encodeURIComponent(asn) +
+                     "&start_date=" + encodeURIComponent(startDate) +
+                     "&end_date=" + encodeURIComponent(endDate);
+
+     document.getElementById('exportRawDataLink').setAttribute('href', rawDataURL);
+     document.getElementById('exportCaidaDataLink').setAttribute('href', caidaDataURL);
+    }
+
+    document.getElementById('requestorASN').addEventListener('change', updateExportLinks);
+    document.getElementById('startMonth').addEventListener('change', updateExportLinks);
+    document.getElementById('endMonth').addEventListener('change', updateExportLinks);
+    window.addEventListener('load', updateExportLinks);
+    </script>
+
+
+
+</body>
+</html>
